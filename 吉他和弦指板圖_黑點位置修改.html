@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吉他新手轉調與指板圖小幫手</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 20px;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: 0.3s;
+        }
+        .tab-btn.active {
+            color: var(--secondary-color);
+            border-bottom: 3px solid var(--secondary-color);
+        }
+        .section {
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+        select, input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 120px;
+            font-family: monospace;
+        }
+        button.action-btn {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button.action-btn:hover {
+            background-color: #2980b9;
+        }
+        .result-box {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f1f4f8;
+            border-radius: 8px;
+            border-left: 5px solid var(--secondary-color);
+        }
+        .tip-box {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #ffeeba;
+            font-size: 14px;
+        }
+        /* 視覺化吉他指板圖 */
+        .chord-grid-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .chord-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            width: 160px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .chord-title {
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        .chord-diagram {
+            position: relative;
+            width: 110px;
+            height: 130px;
+            margin: 0 auto;
+        }
+        .nut {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 90px;
+            height: 5px;
+            background-color: #333;
+        }
+        .grid-svg {
+            position: absolute;
+            top: 25px;
+            left: 10px;
+            width: 90px;
+            height: 100px;
+        }
+        /* 黑點：置中對齊直的琴弦線，並放在兩條橫線之間、不碰橫線 */
+        .marker {
+            position: absolute;
+            width: 11px;
+            height: 11px;
+            background-color: #2c3e50;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+        }
+        /* 封閉和弦橫按線 */
+        .barre-line {
+            position: absolute;
+            height: 5px;
+            background-color: #2c3e50;
+            border-radius: 2.5px;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+        /* 琴弦上方狀態 (x, o) */
+        .string-status {
+            position: absolute;
+            top: 2px;
+            left: 10px;
+            width: 90px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+        }
+        .theory-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .theory-info {
+            font-size: 11px;
+            color: #555;
+            margin-top: 8px;
+            background: #fffbe6;
+            padding: 6px;
+            border-radius: 4px;
+            display: none;
+            text-align: left;
+        }
+        .editable-chord-input {
+            width: 60px;
+            display: inline-block;
+            padding: 2px 5px;
+            font-size: 14px;
+            text-align: center;
+            margin: 2px;
+        }
+        .song-line {
+            margin-bottom: 10px;
+            font-family: monospace;
+            font-size: 16px;
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .file-upload-box {
+            border: 2px dashed #cbd5e1;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+    </style>
+    <!-- 引入 Tesseract.js 支援圖片文字辨識 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎸 吉他新手轉調與指板圖小幫手</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('song')">整張譜轉調 (含圖片上傳)</button>
+        <button class="tab-btn" onclick="switchTab('single')">單顆和弦速查與轉調</button>
+    </div>
+
+    <!-- 模式一：整張譜轉調 -->
+    <div id="song-section" class="section active">
+        <div class="form-group">
+            <label>1. 上傳和弦譜圖片（選填，會自動幫您轉成文字）：</label>
+            <div class="file-upload-box">
+                <input type="file" id="song-image-input" accept="image/*" onchange="handleImageUpload(event)">
+                <div id="ocr-status" style="font-size: 13px; color: #666; margin-top: 5px;">支援上傳吉他譜截圖、照片</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>2. 選擇目標調性（移調幅度）：</label>
+            <select id="target-key">
+                <option value="0">維持原調 (+0)</option>
+                <option value="1">+1 半音</option>
+                <option value="2">+2 全音</option>
+                <option value="3" selected>+3 小三度 (女調常用)</option>
+                <option value="4">+4 大三度</option>
+                <option value="5">+5 完全四度</option>
+                <option value="6">+6 增四度</option>
+                <option value="7">+7 完全五度</option>
+                <option value="8">+8</option>
+                <option value="9">+9</option>
+                <option value="10">+10</option>
+                <option value="11">+11</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>3. 或直接貼上/修改您的和弦譜文字：</label>
+            <textarea id="song-text" placeholder="例如：
+C   Am   F   G
+(歌詞) 這裡放你的歌詞...">C   Am   F   G
+Dm  G7   C   C7</textarea>
+        </div>
+
+        <button class="action-btn" onclick="processSong()">一鍵轉換轉調與指板圖</button>
+
+        <div id="song-result" class="result-box" style="display:none;"></div>
+    </div>
+
+    <!-- 模式二：單顆和弦速查與轉調 -->
+    <div id="single-section" class="section">
+        <div class="form-group">
+            <label>選擇或輸入要查詢的原和弦：</label>
+            <select id="single-chord-select" onchange="updateSingleChordView()">
+                <option value="C">C</option>
+                <option value="Cm">Cm</option>
+                <option value="C7">C7</option>
+                <option value="Cmaj7">Cmaj7</option>
+                <option value="D">D</option>
+                <option value="Dm">Dm</option>
+                <option value="D7">D7</option>
+                <option value="E">E</option>
+                <option value="Em" selected>Em</option>
+                <option value="E7">E7</option>
+                <option value="F">F</option>
+                <option value="Fm">Fm</option>
+                <option value="Fmaj7">Fmaj7</option>
+                <option value="G">G</option>
+                <option value="Gm">Gm</option>
+                <option value="G7">G7</option>
+                <option value="A">A</option>
+                <option value="Am">Am</option>
+                <option value="A7">A7</option>
+                <option value="Amaj7">Amaj7</option>
+                <option value="B">B</option>
+                <option value="Bm">Bm</option>
+                <option value="B7">B7</option>
+                <option value="Bb">Bb</option>
+                <option value="Eb">Eb</option>
+                <option value="Ab">Ab</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>單顆和弦轉調幅度：</label>
+            <select id="single-shift" onchange="updateSingleChordView()">
+                <option value="0">維持原調 (+0)</option>
+                <option value="1">+1 半音</option>
+                <option value="2">+2 全音</option>
+                <option value="3">+3 小三度</option>
+                <option value="4">+4 大三度</option>
+                <option value="5">+5 完全四度</option>
+                <option value="6">+6 增四度</option>
+                <option value="7">+7 完全五度</option>
+                <option value="8">+8</option>
+                <option value="9">+9</option>
+                <option value="10">+10</option>
+                <option value="11">+11</option>
+            </select>
+        </div>
+
+        <div id="single-result" class="chord-grid-container"></div>
+    </div>
+</div>
+
+<script>
+    const semitones = {"C":0, "C#":1, "Db":1, "D":2, "D#":3, "Eb":3, "E":4, "F":5, "F#":6, "Gb":6, "G":7, "G#":8, "Ab":8, "A":9, "A#":10, "Bb":10, "B":11};
+    const noteNames = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+
+    const chordDatabase = {
+        "C":     { startFret: 1, status: ['x','o','3','2','1','o'], fingers: [[2, 3], [3, 2], [4, 1]] },
+        "Cm":    { startFret: 3, status: ['x','1','3','3','2','1'], fingers: [[1,3],[2,3],[3,2],[4,1],[5,1]], isBarre: true, barreFret: 1, barreStrings: [1, 5] },
+        "C7":    { startFret: 1, status: ['x','3','2','3','1','o'], fingers: [[1,3],[2,2],[3,3],[4,1]] },
+        "Cmaj7": { startFret: 1, status: ['x','3','2','0','0','0'], fingers: [[1,3],[2,2]] },
+
+        "D":     { startFret: 1, status: ['x','x','o','1','3','2'], fingers: [[3, 1], [4, 3], [5, 2]] },
+        "Dm":    { startFret: 1, status: ['x','x','o','1','3','2'], fingers: [[3, 1], [4, 3], [5, 2]] },
+        "D7":    { startFret: 1, status: ['x','x','o','2','1','2'], fingers: [[3, 2], [4, 1], [5, 2]] },
+        "Dsus4": { startFret: 1, status: ['x','x','o','2','3','3'], fingers: [[3, 2], [4, 3], [5, 3]] },
+
+        "E":     { startFret: 1, status: ['o','2','2','1','o','o'], fingers: [[1, 2], [2, 2], [3, 1]] },
+        "Em":    { startFret: 1, status: ['o','2','2','o','o','o'], fingers: [[1, 2], [2, 2]] },
+        "E7":    { startFret: 1, status: ['o','2','0','1','o','o'], fingers: [[1, 2], [3, 1]] },
+
+        "F":     { startFret: 1, status: ['1','3','3','2','1','1'], fingers: [[0,3], [1,3], [2,2], [3,1], [4,1], [5,1]], isBarre: true, barreFret: 1, barreStrings: [0, 5] },
+        "Fm":    { startFret: 1, status: ['1','3','3','1','1','1'], fingers: [[0,3], [1,3], [2,1], [3,1], [4,1], [5,1]], isBarre: true, barreFret: 1, barreStrings: [0, 5] },
+        "Fmaj7": { startFret: 1, status: ['x','x','3','2','1','0'], fingers: [[2,3], [3,2], [4,1]] },
+
+        "G":     { startFret: 1, status: ['3','2','o','o','o','3'], fingers: [[0, 3], [1, 2], [5, 3]] },
+        "Gm":    { startFret: 3, status: ['1','3','3','1','1','1'], fingers: [[0,3],[1,3],[2,1],[3,1],[4,1],[5,1]], isBarre: true, barreFret: 1, barreStrings: [0, 5] },
+        "G7":    { startFret: 1, status: ['3','2','o','o','o','1'], fingers: [[0, 3], [1, 2], [5, 1]] },
+
+        "A":     { startFret: 1, status: ['x','o','2','2','2','o'], fingers: [[2, 2], [3, 2], [4, 2]] },
+        "Am":    { startFret: 1, status: ['x','o','2','2','1','o'], fingers: [[2, 2], [3, 2], [4, 1]] },
+        "A7":    { startFret: 1, status: ['x','o','2','o','2','o'], fingers: [[2, 2], [4, 2]] },
+        "Amaj7": { startFret: 1, status: ['x','o','2','1','2','o'], fingers: [[2, 2], [3, 1], [4, 2]] },
+
+        "B":     { startFret: 2, status: ['x','1','3','3','3','1'], fingers: [[1,1],[2,3],[3,3],[4,3],[5,1]], isBarre: true, barreFret: 1, barreStrings: [1, 5] },
+        "Bm":    { startFret: 2, status: ['x','1','3','3','2','1'], fingers: [[1,1],[2,3],[3,3],[4,2],[5,1]], isBarre: true, barreFret: 1, barreStrings: [1, 5] },
+        "B7":    { startFret: 1, status: ['x','2','1','2','o','2'], fingers: [[1,2], [2,1], [3,2], [5,2]] },
+
+        "Bb":    { startFret: 1, status: ['x','1','3','3','3','1'], fingers: [[1,1],[2,3],[3,3],[4,3],[5,1]], isBarre: true, barreFret: 1, barreStrings: [1, 5] },
+        "Eb":    { startFret: 6, status: ['x','1','3','3','3','1'], fingers: [[1,1],[2,3],[3,3],[4,3],[5,1]], isBarre: true, barreFret: 1, barreStrings: [1, 5] },
+        "Ab":    { startFret: 4, status: ['1','3','3','2','1','1'], fingers: [[0,3], [1,3], [2,2], [3,1], [4,1], [5,1]], isBarre: true, barreFret: 1, barreStrings: [0, 5] },
+        "C#m":   { startFret: 4, status: ['x','1','3','3','2','1'], fingers: [[1,1],[2,3],[3,3],[4,2],[5,1]], isBarre: true, barreFret: 1, barreStrings: [1, 5] },
+        "F#m":   { startFret: 2, status: ['1','3','3','1','1','1'], fingers: [[0,3], [1,3], [2,1], [3,1], [4,1], [5,1]], isBarre: true, barreFret: 1, barreStrings: [0, 5] }
+    };
+
+    const chordTheory = {
+        "C": "根音: C<br>三音: E<br>五音: G",
+        "Cm": "根音: C<br>三音: Eb<br>五音: G",
+        "C7": "根音: C<br>三音: E<br>五音: G<br>七音: Bb",
+        "Cmaj7": "根音: C<br>三音: E<br>五音: G<br>七音: B",
+        "D": "根音: D<br>三音: F#<br>五音: A",
+        "Dm": "根音: D<br>三音: F<br>五音: A",
+        "D7": "根音: D<br>三音: F#<br>五音: A<br>七音: C",
+        "Dsus4": "根音: D<br>四音: G<br>五音: A",
+        "E": "根音: E<br>三音: G#<br>五音: B",
+        "Em": "根音: E<br>三音: G<br>五音: B",
+        "E7": "根音: E<br>三音: G#<br>五音: B<br>七音: D",
+        "F": "根音: F<br>三音: A<br>五音: C",
+        "Fm": "根音: F<br>三音: Ab<br>五音: C",
+        "Fmaj7": "根音: F<br>三音: A<br>五音: C<br>七音: E",
+        "G": "根音: G<br>三音: B<br>五音: D",
+        "Gm": "根音: G<br>三音: Bb<br>五音: D",
+        "G7": "根音: G<br>三音: B<br>五音: D<br>七音: F",
+        "A": "根音: A<br>三音: C#<br>五音: E",
+        "Am": "根音: A<br>三音: C<br>五音: E",
+        "A7": "根音: A<br>三音: C#<br>五音: E<br>七音: G",
+        "Amaj7": "根音: A<br>三音: C#<br>五音: E<br>七音: G#",
+        "B": "根音: B<br>三音: D#<br>五音: F#",
+        "Bm": "根音: B<br>三音: D<br>五音: F#",
+        "B7": "根音: B<br>三音: D#<br>五音: F#<br>七音: A",
+        "Bb": "根音: Bb<br>三音: D<br>五音: F",
+        "Eb": "根音: Eb<br>三音: G<br>五音: Bb",
+        "Ab": "根音: Ab<br>三音: C<br>五音: Eb",
+        "C#m": "根音: C#<br>三音: E<br>五音: G#",
+        "F#m": "根音: F#<br>三音: A<br>五音: C#"
+    };
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+        
+        if(tabName === 'song') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('song-section').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('single-section').classList.add('active');
+            updateSingleChordView();
+        }
+    }
+
+    function transposeChord(chord, semitoneShift) {
+        const match = chord.match(/^([A-G][#b]?)(.*)$/);
+        if (!match) return chord;
+        let root = match[1];
+        let suffix = match[2];
+        if (!(root in semitones)) return chord;
+        let currentIdx = semitones[root];
+        let newIdx = (currentIdx + parseInt(semitoneShift) + 12) % 12;
+        return noteNames[newIdx] + suffix;
+    }
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const statusEl = document.getElementById('ocr-status');
+        statusEl.innerText = "⏳ 正在辨識圖片中的和弦譜，請稍候...";
+
+        Tesseract.recognize(
+            file,
+            'eng',
+            { logger: m => console.log(m) }
+        ).then(({ data: { text } }) => {
+            statusEl.innerText = "✅ 圖片辨識完成！已自動填入下方文字框。";
+            document.getElementById('song-text').value = text;
+        }).catch(err => {
+            statusEl.innerText = "❌ 辨識失敗，請手動輸入文字或上傳清晰圖片。";
+            console.error(err);
+        });
+    }
+
+    function processSong() {
+        const shift = parseInt(document.getElementById('target-key').value);
+        const text = document.getElementById('song-text').value;
+        const lines = text.split('\n');
+        
+        let resultHTML = "<h3>🎯 轉調後的譜面（支援手動修改和弦）：</h3>";
+        let allChordsSet = new Set();
+
+        lines.forEach((line, lineIdx) => {
+            let words = line.split(/(\s+)/);
+            let processedLine = "";
+            
+            words.forEach((word, wIdx) => {
+                let trimmed = word.trim();
+                if (trimmed && /^[A-G][#b]?(m|7|maj7|dim|sus4)?$/.test(trimmed)) {
+                    let transposed = transposeChord(trimmed, shift);
+                    allChordsSet.add(transposed);
+                    processedLine += `<input type="text" class="editable-chord-input" value="${transposed}">`;
+                } else {
+                    processedLine += word;
+                }
+            });
+            resultHTML += `<div class="song-line">${processedLine}</div>`;
+        });
+
+        let barCount = 0;
+        allChordsSet.forEach(c => {
+            if(c.includes('F') && c !== 'Fmaj7' || c.includes('Bm') || c.includes('Bb') || c.includes('F#m')) barCount++;
+        });
+
+        if(barCount >= 2 && shift > 0) {
+            resultHTML = `<div class="tip-box">💡 <b>新手貼心提示</b>：轉調後出現了較多封閉和弦。您可以考慮**不變更指型**，改用 **Capo 夾在第 ${shift} 格**，彈奏原本熟悉的簡單開放和弦即可！</div>` + resultHTML;
+        }
+
+        resultHTML += `<h3 style="margin-top:20px;">🎹 譜中用到的和弦指板圖：</h3><div class="chord-grid-container" id="song-chords-display"></div>`;
+        
+        const resultBox = document.getElementById('song-result');
+        resultBox.style.display = 'block';
+        resultBox.innerHTML = resultHTML;
+
+        renderChordsContainer(Array.from(allChordsSet), 'song-chords-display');
+    }
+
+    // 指板圖繪製邏輯：黑點精準對齊直弦線，且位置移到橫線上（不卡在格子正中央）
+    function createChordDiagramHTML(chordObj) {
+        let startFret = chordObj.startFret || 1;
+        let statusHtml = '';
+        if (chordObj.status) {
+            chordObj.status.forEach(s => {
+                statusHtml += `<span>${s}</span>`;
+            });
+        }
+
+        let markersHtml = '';
+        
+        // 封閉和弦橫按線：對齊橫線位置
+        if (chordObj.isBarre) {
+            let startStr = chordObj.barreStrings[0];
+            let endStr = chordObj.barreStrings[1];
+            let leftX = 10 + startStr * 18;
+            let width = (endStr - startStr) * 18;
+            let y = 25 + 12.5; // 封閉橫按放在第一格中央
+            markersHtml += `<div class="barre-line" style="left: ${leftX}px; width: ${width}px; top: ${y}px;"></div>`;
+        }
+
+        // 一般按點：X 軸對齊直的琴弦線，Y 軸放在兩條橫線之間
+        chordObj.fingers.forEach(f => {
+            let stringIdx = f[0]; // 0 ~ 5 (直的琴弦)
+            let fretOffset = f[1] - startFret + 1; // 1 ~ 4 (琴格代表線)
+            if (fretOffset >= 1 && fretOffset <= 4) {
+                let x = 10 + stringIdx * 18; // 對齊直的琴弦線（SVG 左側有 10px 位移）
+                let y = 25 + fretOffset * 25 - 12.5; // 從指板圖上緣起算，放在對應琴格內
+                markersHtml += `<div class="marker" style="left: ${x}px; top: ${y}px;"></div>`;
+            }
+        });
+
+        let nutClass = startFret === 1 ? 'nut' : '';
+
+        return `
+            <div class="chord-diagram">
+                <div class="${nutClass}"></div>
+                <div class="string-status">${statusHtml}</div>
+                <svg class="grid-svg" viewBox="0 0 90 100">
+                    <!-- 6條垂直琴弦 -->
+                    <line x1="0" y1="0" x2="0" y2="100" stroke="#333" stroke-width="2"/>
+                    <line x1="18" y1="0" x2="18" y2="100" stroke="#333" stroke-width="1.5"/>
+                    <line x1="36" y1="0" x2="36" y2="100" stroke="#333" stroke-width="1.5"/>
+                    <line x1="54" y1="0" x2="54" y2="100" stroke="#333" stroke-width="1.5"/>
+                    <line x1="72" y1="0" x2="72" y2="100" stroke="#333" stroke-width="1.5"/>
+                    <line x1="90" y1="0" x2="90" y2="100" stroke="#333" stroke-width="2"/>
+                    
+                    <!-- 4條水平琴格線 -->
+                    <line x1="0" y1="0" x2="90" y2="0" stroke="#333" stroke-width="${startFret === 1 ? '2' : '1'}"/>
+                    <line x1="0" y1="25" x2="90" y2="25" stroke="#777" stroke-width="1.5"/>
+                    <line x1="0" y1="50" x2="90" y2="50" stroke="#777" stroke-width="1.5"/>
+                    <line x1="0" y1="75" x2="90" y2="75" stroke="#777" stroke-width="1.5"/>
+                    <line x1="0" y1="100" x2="90" y2="100" stroke="#777" stroke-width="1.5"/>
+                </svg>
+                ${markersHtml}
+            </div>
+        `;
+    }
+
+    function renderChordsContainer(chordList, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        
+        chordList.forEach(chord => {
+            let chordObj = chordDatabase[chord];
+            if (!chordObj) {
+                let baseKey = chord.match(/^[A-G][#b]?/)?.[0] || "C";
+                chordObj = chordDatabase[baseKey] || { startFret: 1, status: ['x','o','2','2','1','o'], fingers: [[2,1],[3,2],[4,2]] };
+            }
+
+            let theoryText = chordTheory[chord] || "根音/組成音計算中";
+            let diagramHtml = createChordDiagramHTML(chordObj);
+
+            let card = document.createElement('div');
+            card.className = 'chord-card';
+            card.innerHTML = `
+                <div class="chord-title">${chord}</div>
+                ${diagramHtml}
+                <div><button class="theory-btn" onclick="toggleTheory(this)">點擊看組成音</button></div>
+                <div class="theory-info">${theoryText}</div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function toggleTheory(btn) {
+        let info = btn.parentElement.nextElementSibling;
+        if(info.style.display === "block") {
+            info.style.display = "none";
+            btn.innerText = "點擊看組成音";
+        } else {
+            info.style.display = "block";
+            btn.innerText = "隱藏組成音";
+        }
+    }
+
+    function updateSingleChordView() {
+        const originalChord = document.getElementById('single-chord-select').value;
+        const shift = document.getElementById('single-shift').value;
+        const transposedChord = transposeChord(originalChord, shift);
+        
+        let displayTitle = shift !== "0" ? `${transposedChord} <span style="font-size:13px; color:#666;">(原: ${originalChord})</span>` : originalChord;
+        
+        renderChordsContainerWithCustomTitle([transposedChord], [displayTitle], 'single-result');
+    }
+
+    function renderChordsContainerWithCustomTitle(chordList, titleList, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        
+        chordList.forEach((chord, idx) => {
+            let chordObj = chordDatabase[chord];
+            if (!chordObj) {
+                let baseKey = chord.match(/^[A-G][#b]?/)?.[0] || "C";
+                chordObj = chordDatabase[baseKey] || { startFret: 1, status: ['x','o','2','2','1','o'], fingers: [[2,1],[3,2],[4,2]] };
+            }
+
+            let theoryText = chordTheory[chord] || "根音/組成音計算中";
+            let diagramHtml = createChordDiagramHTML(chordObj);
+
+            let card = document.createElement('div');
+            card.className = 'chord-card';
+            card.innerHTML = `
+                <div class="chord-title">${titleList[idx]}</div>
+                ${diagramHtml}
+                <div><button class="theory-btn" onclick="toggleTheory(this)">點擊看組成音</button></div>
+                <div class="theory-info">${theoryText}</div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    window.onload = function() {
+        updateSingleChordView();
+    }
+</script>
+
+</body>
+</html>
